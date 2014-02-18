@@ -55,6 +55,8 @@ function register_user_name(user, name){
 
 function choose_menue(user, menu_choise){
 
+	console.log('menu_choise' + menu_choise);
+
 	if(menu_choise == 'create'){
 
 		user.user_status = userState.UserStateCreateRoom;
