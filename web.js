@@ -1,7 +1,7 @@
 var net = require('net'); //TCP Server 
 //var user_object = require('./user');
 
-var userState =  { 'UserStateNotLogedIn' : 0, 
+var userState =  { 'UserStateNotLogedIn' : 0,
 					'UserStateLogedInMenu' : 1, 
 					'UserStateInRoom' : 2,
 					'UserStateJoinRoom' : 3,
@@ -41,14 +41,135 @@ function register_user_name(user, name){
 
 	if(userNameIsAvailable){
 
-		user.user_status = userState.UserStateLogedIn;
-		user.user_name = data;
+		user.user_status = userState.UserStateInMenu;
+		user.user_name = name;
 		user.socket.write('success# your username is ' + name + '\r\n');
-		socket.write('to create a room type create to see all the rooms type peak \r\n');
+		user.socket.write('to create a room type create to see all the rooms type peak \r\n');
 
 	}else{
 
-		user.socket.write('fail#this username is already taken');
+		user.socket.write('fail# this username is already taken, try again\r\n');
+	}
+}
+
+
+function choose_menue(user, menu_choise){
+
+	if(menu_choise == 'create'){
+
+		user.user_status = userState.UserStateCreateRoom;
+		user.socket.write('success# enter the room name or /back for to return \r\n');
+
+	}else if(menu_choise == 'peak'){
+
+		user.user_status = userState.UserStateJoinRoom;
+		user.socket.write('success# rooms list \r\n');
+		for(var r = 0; r < rooms.length; r++){
+			user.socket.write(rooms[r].room_name + '\r\n');
+		}
+		user.socket.write('success# rooms list \r\n');
+		user.socket.write('enter room name to join room or /back to return \r\n');
+
+	}else{
+
+		user.socket.write('fail# invalide command \r\n');
+
+	}
+}
+
+function create_room(user, name){
+
+	if(name == '/back'){
+		user.user_status = userState.UserStateInMenu;
+		user.socket.write('success# to create a room type create to see all the rooms type peak \r\n');
+		return;
+	}
+
+	var canCreateRoom = true;
+	for(var r = 0; r < rooms.length; r++){
+
+		if(rooms[r].room_name == name){
+			canCreateRoom = false;
+			break;
+		}
+	}
+
+	if(canCreateRoom){
+
+		room = new Room(name);
+		room.users.push(user);
+		rooms.push(room);
+		user.user_status = userState.UserStateInRoom;
+		user.socket.write('success# you have created and joined the room: ' + name + ' type /leave to leave the room \r\n');
+
+	}else{
+
+		user.socket.write('fail# cannot create room, enter other name \r\n');
+
+	}
+}
+
+function join_room(user, name){
+
+	if(name == '/back'){
+		user.user_status = userState.UserStateInMenu;
+		return;
+	}
+
+	var roomIndex = -1;
+	for(var r = 0; r < rooms.length; r++){
+
+		if(rooms[r].room_name == name){
+			roomIndex = r;
+			break;
+		}
+	}
+
+	if(roomIndex >= 0){
+		user.user_status = userState.UserStateInRoom;
+		for(var ru = 0; ru < room.users.length; ru++){
+			rooms[roomIndex].users[ru].socket.write(user.user_name + ' hast joined the room \r\n');
+		}
+		rooms[roomIndex].users.push(user);
+		console.log(rooms);
+		user.socket.write('success# you joined the room ' + name + ' type /leave to leave \r\n');
+	}else{
+		user.socket.write('fail# this room does not exist, enter a different room name\r\n');
+	}
+}
+
+function in_room(user, data){
+
+	if('/leave' == data){
+		var room;
+		for (var r = 0; r < rooms.length; r++){
+			for(var ru = 0; ru < rooms[r].users.length; ru++){
+				if(rooms[r].users[ru] == user){
+					rooms[r].users.splice(ru,1);
+				}
+			}
+		}
+
+		user.user_status = userState.UserStateInMenu;
+		user.socket.write('success# to create a room type create to see all the rooms type peak \r\n');
+		return;
+	}
+
+	var room_index = -1;
+	for (var r = 0; r < rooms.length; r++){
+		for(var ru = 0; ru < rooms[r].users.length; ru++){
+			if(rooms[r].users[ru] == user){
+				room_index = r;
+				break;
+			}
+		}
+	}
+
+	if (room_index >= 0){
+		for(var ru = 0; ru < rooms[room_index].users.length; ru++){
+			if(rooms[room_index].users[ru] == user) continue;
+			rooms[room_index].users[ru].socket.write(user.user_name + '# ' + data + '\r\n');
+		}
 	}
 }
  
@@ -69,105 +190,35 @@ var server = net.createServer(function(socket){
 			if(users[i].socket == socket){
 
 				data = data.toString('utf-8').trim();
+				data = data.replace('#', '');
 				
-
 				// ----- login ----- //
 				if(users[i].user_status == userState.UserStateNotLogedIn){
-
 					register_user_name(users[i], data);
-
-					data = data.toString('utf-8').trim();
-					
-					console.log('connect');
 				}
 
 				// ----- menu ---- //
 				else if(users[i].user_status == userState.UserStateInMenu){
-
-					// convert data to comparable string
-					data = data.toString('utf-8').trim();
-
-					if(data.toString() == 'create'){
-						users[i].user_status = userState.UserStateCreateRoom;
-						socket.write('enter the room name \r\n');
-
-					}
-
-					else if(data.toString() == 'peak'){
-						users[i].user_status = userState.UserStateJoinRoom;
-						socket.write('room list: \r\n');
-						for(var r = 0; r < rooms.length; r++){
-							socket.write(rooms[r].room_name + '\r\n');
-						}
-						socket.write('type room name to join room \r\n');
-					}
+					choose_menue(users[i], data);
 				}
 
 				// ----- create room ---- //
 				else if(users[i].user_status == userState.UserStateCreateRoom){
-
-					// convert data to comparable string
-					data = data.toString('utf-8').trim();
-					room = new Room(data);
-					room.users.push(users[i]);
-					rooms.push(room);
-					users[i].user_status = userState.UserStateInRoom;
-					socket.write('you have created and joined the room: ' + data + '\r\n');
-					socket.write('type /leave to leave the room \r\n');
-
+					create_room(users[i], data);
 				}
 
 				// ----- join room ----- //
 				else if(users[i].user_status == userState.UserStateJoinRoom){
-
-					data = data.toString('utf-8').trim();
-					//var isValidRoom = false;
-					//var room;
-					var room_index = -1
-					for(var r = 0; r < rooms.length; r++){
-						if(rooms[r].room_name == data){
-							room_index = r;
-							//isValidRoom = true;
-							//room = rooms[r];
-							break;
-						}
-					}
-
-					if(room_index >= 0){
-						users[i].user_status = userState.UserStateInRoom;
-						for(var ru = 0; ru < room.users.length; ru++){
-							rooms[room_index].users[ru].socket.write(users[i].user_name + ' hast joined the room \r\n');
-						}
-						rooms[room_index].users.push(users[i]);
-						socket.write('you joined the room ' + data + '\r\n');
-
-					}else{
-						socket.write('the room ' + data + ' does not exist, try again \r\n');
-					}
+					join_room(users[i], data);
 				}
 
 				// ----- in room ----- //
 				else if(users[i].user_status == userState.UserStateInRoom){
-					data = data.toString('utf-8').trim();
-					var room_index = -1;
-					for(var r = 0; r < rooms.length; r++){
-						if(rooms[r].users.indexOf(users[i])){
-							room_index = r;
-							break;
-						}
-					}
-
-					if(room_index >= 0){
-						for(var ru = 0; ru < room.users.length; ru++){
-						if(room.users[ru] == users[i]) continue;
-							room.users[ru].socket.write(data + '\r\n');
-						}
-					}
+					in_room(users[i], data);
 				}
 			}
 		}
 	});
-
  
 	//remove socket from arary
 	socket.on('end', function(){
