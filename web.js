@@ -27,6 +27,30 @@ function Room(room_name){
 	this.users = [];
 
 }
+
+
+function register_user_name(user, name){
+
+	var userNameIsAvailable = true;
+	for(int i = 0; i < usres.length; i++){
+		if(users[i].user_name == name){
+			userNameIsAvailable = false;
+			break;
+		}
+	}
+
+	if(userNameIsAvailable){
+		
+		user.user_status = userState.UserStateLogedIn;
+		user.user_name = data;
+		user.socket.write('success# your username is ' + name + '\r\n');
+		socket.write('to create a room type create to see all the rooms type peak \r\n');
+
+	}else{
+
+		user.socket.write('fail#this username is already taken');
+	}
+}
  
 var server = net.createServer(function(socket){
 	sockets.push(socket); //add person to socket
@@ -44,13 +68,16 @@ var server = net.createServer(function(socket){
 		for(var i = 0; i<users.length; i++){
 			if(users[i].socket == socket){
 
+				data = data.toString('utf-8').trim();
+				
+
 				// ----- login ----- //
 				if(users[i].user_status == userState.UserStateNotLogedIn){
+
+					register_user_name(users[i], data);
+
 					data = data.toString('utf-8').trim();
-					users[i].user_status = userState.UserStateLogedIn;
-					users[i].user_name = data;
-					socket.write('your username is ' + users[i].user_name + '\r\n');
-					socket.write('to create a room type create to see all the rooms type peak \r\n');
+					
 					console.log('connect');
 				}
 
