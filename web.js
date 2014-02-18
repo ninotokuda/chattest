@@ -32,7 +32,7 @@ function Room(room_name){
 function register_user_name(user, name){
 
 	var userNameIsAvailable = true;
-	for(int i = 0; i < usres.length; i++){
+	for(var i = 0; i < users.length; i++){
 		if(users[i].user_name == name){
 			userNameIsAvailable = false;
 			break;
@@ -40,7 +40,7 @@ function register_user_name(user, name){
 	}
 
 	if(userNameIsAvailable){
-		
+
 		user.user_status = userState.UserStateLogedIn;
 		user.user_name = data;
 		user.socket.write('success# your username is ' + name + '\r\n');
