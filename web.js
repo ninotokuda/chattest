@@ -129,7 +129,7 @@ function join_room(user, name){
 
 	if(roomIndex >= 0){
 		user.user_status = userState.UserStateInRoom;
-		for(var ru = 0; ru < room.users.length; ru++){
+		for(var ru = 0; ru < rooms[roomIndex].users.length; ru++){
 			rooms[roomIndex].users[ru].socket.write(user.user_name + ' hast joined the room \r\n');
 		}
 		rooms[roomIndex].users.push(user);
