@@ -143,17 +143,7 @@ function join_room(user, name){
 function in_room(user, data){
 
 	if('/leave' == data){
-		var room;
-		for (var r = 0; r < rooms.length; r++){
-			for(var ru = 0; ru < rooms[r].users.length; ru++){
-				if(rooms[r].users[ru] == user){
-					rooms[r].users.splice(ru,1);
-				}
-			}
-		}
-
-		user.user_status = userState.UserStateInMenu;
-		user.socket.write('success# to create a room type create to see all the rooms type peak \r\n');
+		leave(user);
 		return;
 	}
 
@@ -173,6 +163,28 @@ function in_room(user, data){
 			rooms[room_index].users[ru].socket.write(user.user_name + '# ' + data + '\r\n');
 		}
 	}
+}
+
+function leave(user){
+
+	for (var r = 0; r < rooms.length; r++){
+		for(var ru = 0; ru < rooms[r].users.length; ru++){
+			if(rooms[r].users[ru] == user){
+				rooms[r].users.splice(ru,1);
+			}
+			for(var ru2 = 0; ru2 < rooms[r].users.length; ru2++){
+				rooms[r].users[ru2].socket.write(user.user_name + '# has left the room');
+			}
+		}
+	}
+
+	for(var u = 0; u < users.length; u++){
+		if(users[u] == user){
+			users.splice(u,1);
+		}
+	}
+	console.log('destroy');
+	user.socket.destroy();
 }
  
 var server = net.createServer(function(socket){
@@ -224,9 +236,10 @@ var server = net.createServer(function(socket){
  
 	//remove socket from arary
 	socket.on('end', function(){
-		var i = sockets.indexOf(socket);
-		sockets.splice(i,1); //remove person from array
-		//could also do-- delete socket.[0]
+		for(var u = 0; u < users.length; u++){
+
+			leave(users[u]);
+		}
 	});
 });
  
