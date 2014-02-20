@@ -67,7 +67,7 @@ function choose_menue(user, menu_choise){
 		user.user_status = userState.UserStateJoinRoom;
 		user.socket.write('success# rooms list \r\n');
 		for(var r = 0; r < rooms.length; r++){
-			user.socket.write(rooms[r].room_name + '\r\n');
+			user.socket.write('roomname#' + rooms[r].room_name + '\r\n');
 		}
 		user.socket.write('success# rooms list \r\n');
 		user.socket.write('enter room name to join room or /back to return \r\n');
